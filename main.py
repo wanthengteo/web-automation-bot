@@ -32,3 +32,12 @@ with sync_playwright() as p:
     page.click('input[name="ctl00$MainContent$btnSearch"]')
     page.wait_for_load_state("networkidle")
 
+    time.sleep(3)  # let results load fully
+    page.screenshot(path="debug.png")
+
+    # broader selector
+    page.wait_for_selector('input[value="Save to Excel"]', timeout=60000)
+    with page.expect_download() as download_info:
+        page.click('input[value="Save to Excel"]')
+    download = download_info.value
+    download.save_as("report.xls")
