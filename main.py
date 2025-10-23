@@ -11,9 +11,9 @@ with sync_playwright() as p:
     page = browser.new_page()
 
     page.goto(LOGIN_URL)
-    page.fill('input[name="ct100$MainContent$txtEmpID"]', USERNAME)
-    page.fill('input[name="ct100$MainContent$txtPassword"]', PASSWORD)
-    page.click('input[name="ct100$MainContent$btnSignIn"]')
+    page.fill('input[name="ctl00$MainContent$txtEmpID"]', USERNAME)
+    page.fill('input[name="ctl00$MainContent$txtPassword"]', PASSWORD)
+    page.click('input[name="ctl00$MainContent$btnSignIn"]')
 
     page.wait_for_load_state("networkidle")
 
