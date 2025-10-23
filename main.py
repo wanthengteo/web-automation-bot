@@ -6,7 +6,8 @@ USERNAME = "HR008"
 PASSWORD = "12345678"
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=False)
+    browser = p.chromium.launch(headless=True,
+    args=["--no-sandbox","--disable-setuid-sandbox","--disable-gpu"])
     page = browser.new_page()
 
     page.goto(LOGIN_URL)
