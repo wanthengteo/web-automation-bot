@@ -33,10 +33,11 @@ with sync_playwright() as p:
     page.wait_for_load_state("networkidle")
 
     # === Download Excel ===
+    page.wait_for_selector('#MainContent_btnSavetoExcel', timeout=60000)
     with page.expect_download() as download_info:
-        page.click('text=Save to Excel')
+        page.click('#MainContent_btnSavetoExcel')
     download = download_info.value
-    download.save_as("lvhistory.xls")
+    download.save_as("report.xls")
 
     print("✅ Download completed: report.xls")
     browser.close()
