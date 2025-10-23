@@ -39,5 +39,3 @@ with sync_playwright() as p:
 
     print("✅ Download completed: report.xls")
     browser.close()
-    print("✅ Download completed: report.xls")
-    browser.close()
