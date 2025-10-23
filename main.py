@@ -16,25 +16,30 @@ with sync_playwright() as p:
     page.fill('input[name="ctl00$MainContent$txtEmpID"]', USERNAME)
     page.fill('input[name="ctl00$MainContent$txtPassword"]', PASSWORD)
     page.click('input[name="ctl00$MainContent$btnSignIn"]')
+
     page.wait_for_load_state("networkidle")
 
     page.goto("http://103.230.126.114/eportal/admin/processor/lvhistoryepe.aspx")
     page.wait_for_load_state("networkidle")
 
-    # Fill in date range
+    # === Fill in date range ===
+    page.fill('input[name="ctl00$MainContent$txtFromDate"]', "")
+    page.fill('input[name="ctl00$MainContent$txtToDate"]', "")
     page.fill('input[name="ctl00$MainContent$txtFromDate"]', "01/01/2025")
     page.fill('input[name="ctl00$MainContent$txtToDate"]', "31/12/2026")
     page.click('input[name="ctl00$MainContent$btnSearch"]')
     page.wait_for_load_state("networkidle")
-    time.sleep(5)
 
-print("\n=== BUTTONS FOUND ===")
-buttons = page.query_selector_all("input[type=submit], button")
-for b in buttons:
-    print("name:", b.get_attribute("name"), "| value:", b.get_attribute("value"))
+    # === DEBUG INFO (keep inside 'with' block) ===
+    print("\n=== BUTTONS FOUND ===")
+    buttons = page.query_selector_all("input[type=submit], button")
+    for b in buttons:
+        print("name:", b.get_attribute("name"), "| value:", b.get_attribute("value"))
 
-# Save HTML for inspection
-html_content = page.content()
-with open("debug_page.html", "w", encoding="utf-8") as f:
-    f.write(html_content)
-print("\n✅ Saved current HTML as debug_page.html")
+    html_content = page.content()
+    with open("debug_page.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print("\n✅ Saved current HTML as debug_page.html")
+
+    # Do NOT close before this point
+    browser.close()
