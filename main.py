@@ -6,7 +6,10 @@ USERNAME = "HR008"
 PASSWORD = "12345678"
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=False)  # headless=False helps debug visually
+    browser = p.chromium.launch(
+        headless=True,
+        args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"]
+    )
     page = browser.new_page()
 
     page.goto(LOGIN_URL)
@@ -33,8 +36,12 @@ with sync_playwright() as p:
     print("\n=== BUTTONS FOUND ===")
     buttons = page.query_selector_all("input[type=submit], button")
     for b in buttons:
-        print(b.get_attribute("name"), b.get_attribute("value"))
+        print("name:", b.get_attribute("name"), "| value:", b.get_attribute("value"))
 
-    page.screenshot(path="debug_screenshot.png")
-    print("\n📸 Screenshot saved as debug_screenshot.png")
-    print("Check which frame or selector contains 'Save to Excel'.")
+    # Save HTML for inspection
+    html_content = page.content()
+    with open("debug_page.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
+    print("\n✅ Saved current HTML as debug_page.html")
+
+    browser.close()
