@@ -28,20 +28,13 @@ with sync_playwright() as p:
     page.wait_for_load_state("networkidle")
     time.sleep(5)
 
-    # === DEBUG INFO ===
-    print("\n=== FRAMES DETECTED ===")
-    for f in page.frames:
-        print(f.name, f.url)
+print("\n=== BUTTONS FOUND ===")
+buttons = page.query_selector_all("input[type=submit], button")
+for b in buttons:
+    print("name:", b.get_attribute("name"), "| value:", b.get_attribute("value"))
 
-    print("\n=== BUTTONS FOUND ===")
-    buttons = page.query_selector_all("input[type=submit], button")
-    for b in buttons:
-        print("name:", b.get_attribute("name"), "| value:", b.get_attribute("value"))
-
-    # Save HTML for inspection
-    html_content = page.content()
-    with open("debug_page.html", "w", encoding="utf-8") as f:
-        f.write(html_content)
-    print("\n✅ Saved current HTML as debug_page.html")
-
-    browser.close()
+# Save HTML for inspection
+html_content = page.content()
+with open("debug_page.html", "w", encoding="utf-8") as f:
+    f.write(html_content)
+print("\n✅ Saved current HTML as debug_page.html")
