@@ -38,7 +38,7 @@ with sync_playwright() as p:
 
     print("💾 Clicking Save to Excel...")
     with page.expect_download() as download_info:
-    page.click("input[value='Save to Excel']")
+        page.click("input[value='Save to Excel']")
     download = download_info.value
     download.save_as("leave_history.xls")
 
