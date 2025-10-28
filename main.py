@@ -28,18 +28,19 @@ with sync_playwright() as p:
     page.fill('input[name="ctl00$MainContent$txtFromDate"]', "01/01/2025")
     page.fill('input[name="ctl00$MainContent$txtToDate"]', "31/12/2026")
     page.click('input[name="ctl00$MainContent$btnSearch"]')
-    page.wait_for_load_state("networkidle")
 
-    # === DEBUG INFO (keep inside 'with' block) ===
-    print("\n=== BUTTONS FOUND ===")
-    buttons = page.query_selector_all("input[type=submit], button")
-    for b in buttons:
-        print("name:", b.get_attribute("name"), "| value:", b.get_attribute("value"))
+    print("⏳ Waiting for results to load and scrolling...")
+    page.wait_for_timeout(5000)  # wait 5s for backend processing
+    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")  # scroll to bottom
 
-    html_content = page.content()
-    with open("debug_page.html", "w", encoding="utf-8") as f:
-        f.write(html_content)
-    print("\n✅ Saved current HTML as debug_page.html")
+    # wait for Save to Excel button to appear
+    page.wait_for_selector("input[value='Save to Excel']", timeout=20000)
+
+    print("💾 Clicking Save to Excel...")
+    with page.expect_download() as download_info:
+    page.click("input[value='Save to Excel']")
+    download = download_info.value
+    download.save_as("leave_history.xls")
 
     # Do NOT close before this point
     browser.close()
