@@ -13,7 +13,7 @@ USERNAME = "HR008"
 PASSWORD = "12345678"
 DOWNLOAD_DIR = "."  # Save Excel file in repo root
 EXCEL_FILE = "lvhistory.xls"  # Fixed file name
-GOOGLE_SHEET_ID = os.environ.get("GOOGLE_SHEET_ID")  # The stable converted Google Sheet
+GOOGLE_SHEET_ID = "14O-oINGLnCYwnacAYUL7jF4M-iTDQCI5lrlXwRIF4UQ"  # The stable converted Google Sheet
 
 # === 2. Automate login & download using Playwright ===
 def download_excel():
