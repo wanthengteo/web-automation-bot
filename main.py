@@ -12,7 +12,6 @@ LOGIN_URL = "http://103.230.126.114/eportal/public/signin.aspx"
 USERNAME = "HR008"
 PASSWORD = "12345678"
 DOWNLOAD_DIR = "."  # Save Excel file in repo root
-EXCEL_FILE = f"leave_history_{datetime.now().strftime('%Y-%m-%d')}.xls"
 
 # === 2. Automate login & download using Playwright ===
 def download_excel():
@@ -51,7 +50,8 @@ def download_excel():
             page.click("input[value='Save to Excel']")
         download = download_info.value
 
-        output_path = os.path.join(DOWNLOAD_DIR, EXCEL_FILE)
+        original_file_name = download.suggested_filename
+        output_path = os.path.join(DOWNLOAD_DIR, original_file_name)
         download.save_as(output_path)
         browser.close()
 
