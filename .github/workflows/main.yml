@@ -29,5 +29,5 @@ jobs:
       - name: Run automation script
         env:
           GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
-          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}  # Add this secret
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
         run: python main.py
