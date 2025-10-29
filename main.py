@@ -42,8 +42,11 @@ with sync_playwright() as p:
     with page.expect_download() as download_info:
         page.click("input[value='Save to Excel']")
     download = download_info.value
-    download.save_as("leave_history.xls")
+    
+    # Save into local Downloads folder
+    output_path = os.path.join(DOWNLOAD_DIR, "leave_history.xls")
+    download.save_as(output_path)
 
-    print("✅ Download completed: leave_history.xls")
+    print(f"✅ Download completed: {output_path}")
 
     browser.close()
