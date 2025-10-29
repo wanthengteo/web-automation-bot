@@ -1,19 +1,17 @@
 from playwright.sync_api import sync_playwright
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-import pandas as pd
+from googleapiclient.http import MediaFileUpload
 import os
 import json
+import time
+from datetime import datetime
 
 # === 1. Login configuration ===
 LOGIN_URL = "http://103.230.126.114/eportal/public/signin.aspx"
 USERNAME = "HR008"
 PASSWORD = "12345678"
 DOWNLOAD_DIR = "."  # Save Excel file in repo root
-EXCEL_FILE = "lvhistory.xls"  # Fixed file name
-
-# Get Sheet ID from environment (GitHub Secret)
-GOOGLE_SHEET_ID = os.environ["GOOGLE_SHEET_ID"]
 
 # === 2. Automate login & download using Playwright ===
 def download_excel():
@@ -52,54 +50,58 @@ def download_excel():
             page.click("input[value='Save to Excel']")
         download = download_info.value
 
-        output_path = os.path.join(DOWNLOAD_DIR, EXCEL_FILE)
+        original_file_name = download.suggested_filename
+        output_path = os.path.join(DOWNLOAD_DIR, original_file_name)
         download.save_as(output_path)
         browser.close()
-
-        # Quick check if file looks like Excel
-        if not os.path.exists(output_path) or os.path.getsize(output_path) < 1000:
-            raise ValueError("❌ Downloaded file is too small or invalid, probably not a real Excel file")
 
         print(f"✅ Download completed: {output_path}")
         return output_path
 
-# === 3. Overwrite the existing Google Sheet with Excel data ===
-def overwrite_google_sheet(excel_path):
-    print("📄 Overwriting Google Sheet with Excel data...")
 
-    if not os.path.exists(excel_path):
-        raise FileNotFoundError(f"❌ File not found: {excel_path}")
+# === 3. Upload file to Google Drive (to specific folder) ===
+def upload_to_drive(file_path):
+    print("📤 Uploading to Google Drive...")
+
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"❌ File not found: {file_path}")
 
     # Load credentials
     service_account_info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT"])
     creds = service_account.Credentials.from_service_account_info(
         service_account_info,
-        scopes=["https://www.googleapis.com/auth/spreadsheets"]
+        scopes=["https://www.googleapis.com/auth/drive.file"]
     )
-    sheets_service = build("sheets", "v4", credentials=creds)
 
-    # Read Excel data
-    df = pd.read_excel(excel_path, engine="xlrd")
-    if df.empty:
-        raise ValueError("❌ Downloaded Excel file is empty or invalid")
+    drive_service = build("drive", "v3", credentials=creds)
 
-    # Columns C,F,G,H,I -> indexes 2,5,6,7,8
-    data_to_write = df.iloc[:, [2,5,6,7,8]].values.tolist()
+    # Get folder ID from GitHub Secret
+    folder_id = os.environ.get("GOOGLE_DRIVE_FOLDER_ID")
+    if not folder_id:
+        raise ValueError("❌ Missing GOOGLE_DRIVE_FOLDER_ID environment variable in GitHub Secrets")
 
-    # Overwrite the Google Sheet starting at A1
-    sheets_service.spreadsheets().values().update(
-        spreadsheetId=GOOGLE_SHEET_ID,
-        range="A1",
-        valueInputOption="RAW",
-        body={"values": data_to_write}
+    # Upload file into specific folder
+    file_name = os.path.basename(file_path)
+    file_metadata = {
+        "name": file_name,
+        "parents": ["0APR2f6bdTxYtUk9PVA"]  # upload into target folder
+    }
+
+    media = MediaFileUpload(file_path, mimetype="application/vnd.ms-excel")
+    uploaded_file = drive_service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields="id, webViewLink",
+        supportsAllDrives=True  # <-- important for Shared Drive
     ).execute()
 
-    print(f"✅ Google Sheet {GOOGLE_SHEET_ID} overwritten successfully with {len(data_to_write)} rows.")
+    print(f"✅ File uploaded to folder: {uploaded_file.get('webViewLink')}")
+
 
 # === 4. Main execution ===
 if __name__ == "__main__":
     try:
         excel_path = download_excel()
-        overwrite_google_sheet(excel_path)
+        upload_to_drive(excel_path)
     except Exception as e:
         print(f"❌ Workflow failed: {e}")
