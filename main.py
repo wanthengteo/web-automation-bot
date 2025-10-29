@@ -91,7 +91,8 @@ def upload_to_drive(file_path):
     uploaded_file = drive_service.files().create(
         body=file_metadata,
         media_body=media,
-        fields="id, webViewLink"
+        fields="id, webViewLink",
+        supportsAllDrives=True  # <-- important for Shared Drive
     ).execute()
 
     print(f"✅ File uploaded to folder: {uploaded_file.get('webViewLink')}")
