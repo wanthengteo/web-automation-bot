@@ -1,7 +1,6 @@
 from playwright.sync_api import sync_playwright
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
 import pandas as pd
 import os
 import json
@@ -13,7 +12,9 @@ USERNAME = "HR008"
 PASSWORD = "12345678"
 DOWNLOAD_DIR = "."  # Save Excel file in repo root
 EXCEL_FILE = "lvhistory.xls"  # Fixed file name
-GOOGLE_SHEET_ID = "14O-oINGLnCYwnacAYUL7jF4M-iTDQCI5lrlXwRIF4UQ"  # The stable converted Google Sheet
+
+# Get Sheet ID from environment (GitHub Secret)
+GOOGLE_SHEET_ID = os.environ["GOOGLE_SHEET_ID"]
 
 # === 2. Automate login & download using Playwright ===
 def download_excel():
@@ -52,6 +53,10 @@ def download_excel():
             page.click("input[value='Save to Excel']")
         download = download_info.value
 
+        print(f"File MIME type: {download.content_type}")
+        if not download.content_type.startswith("application/"):
+            raise ValueError("❌ Downloaded file is not a valid Excel file")
+
         output_path = os.path.join(DOWNLOAD_DIR, EXCEL_FILE)
         download.save_as(output_path)
         browser.close()
@@ -75,7 +80,10 @@ def overwrite_google_sheet(excel_path):
     sheets_service = build("sheets", "v4", credentials=creds)
 
     # Read Excel data
-    df = pd.read_excel(EXCEL_FILE, engine="xlrd")
+    df = pd.read_excel(excel_path, engine="xlrd")
+    if df.empty:
+        raise ValueError("❌ Downloaded Excel file is empty or invalid")
+
     # Columns C,F,G,H,I -> indexes 2,5,6,7,8
     data_to_write = df.iloc[:, [2,5,6,7,8]].values.tolist()
 
