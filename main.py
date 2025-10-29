@@ -1,5 +1,6 @@
 from playwright.sync_api import sync_playwright
 import time
+import os
 
 LOGIN_URL = "http://103.230.126.114/eportal/public/signin.aspx"
 USERNAME = "HR008"
