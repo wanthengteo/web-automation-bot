@@ -6,6 +6,8 @@ LOGIN_URL = "http://103.230.126.114/eportal/public/signin.aspx"
 USERNAME = "HR008"
 PASSWORD = "12345678"
 
+DOWNLOAD_DIR = "."  # ✅ add this line
+
 with sync_playwright() as p:
     browser = p.chromium.launch(
         headless=True,
