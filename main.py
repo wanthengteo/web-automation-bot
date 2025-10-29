@@ -84,7 +84,7 @@ def upload_to_drive(file_path):
     file_name = os.path.basename(file_path)
     file_metadata = {
         "name": file_name,
-        "parents": ["1nCV_rw5txoy9HeJBFhGn7CHQDRGVhacD"]  # upload into target folder
+        "parents": ["0APR2f6bdTxYtUk9PVA"]  # upload into target folder
     }
 
     media = MediaFileUpload(file_path, mimetype="application/vnd.ms-excel")
