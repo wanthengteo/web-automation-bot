@@ -65,8 +65,8 @@ def download_excel():
 
 # === 3. Overwrite the existing Google Sheet with Excel data ===
 def overwrite_google_sheet(excel_path):
-    print("📄 Overwriting Google Sheet with Excel data...")
-
+    print("📄 Overwriting stable Google Sheet smoothly...")
+    
     if not os.path.exists(excel_path):
         raise FileNotFoundError(f"❌ File not found: {excel_path}")
 
@@ -81,20 +81,29 @@ def overwrite_google_sheet(excel_path):
     # Read Excel data
     df = pd.read_excel(excel_path, engine="xlrd")
     if df.empty:
-        raise ValueError("❌ Downloaded Excel file is empty or invalid")
+        print("⚠️ Excel file is empty.")
+        return
 
     # Columns C,F,G,H,I -> indexes 2,5,6,7,8
     data_to_write = df.iloc[:, [2,5,6,7,8]].values.tolist()
+    num_rows = len(data_to_write)
+    num_cols = len(data_to_write[0])
 
-    # Overwrite the Google Sheet starting at A1
+    # Clear only the range to be updated (A1:E<row count>)
+    sheets_service.spreadsheets().values().clear(
+        spreadsheetId=os.environ["GOOGLE_SHEET_ID"],
+        range=f"A1:E{num_rows}"
+    ).execute()
+
+    # Write only the necessary range
     sheets_service.spreadsheets().values().update(
-        spreadsheetId=GOOGLE_SHEET_ID,
-        range="A1",
+        spreadsheetId=os.environ["GOOGLE_SHEET_ID"],
+        range=f"A1:E{num_rows}",
         valueInputOption="RAW",
         body={"values": data_to_write}
     ).execute()
 
-    print(f"✅ Google Sheet {GOOGLE_SHEET_ID} overwritten successfully with {len(data_to_write)} rows.")
+    print(f"✅ Google Sheet updated successfully with {num_rows} rows and {num_cols} columns.")
 
 # === 4. Main execution ===
 if __name__ == "__main__":
