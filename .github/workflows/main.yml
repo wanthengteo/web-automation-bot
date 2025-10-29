@@ -1,32 +1,30 @@
-name: Daily Leave Report to Google Drive
+name: Daily Leave Report Upload to Google Drive
 
 on:
   schedule:
-    - cron: "0 23 * * *"  # Runs daily at 7 AM Malaysia (GMT+8 = 23:00 UTC)
-  workflow_dispatch:      # Allow manual run
+    - cron: "0 23 * * *"  # 7 AM Malaysia
+  workflow_dispatch:
 
 jobs:
-  run-automation:
+  run:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
-          pip install playwright google-api-python-client google-auth google-auth-httplib2 google-auth-oauthlib
+          python -m pip install --upgrade pip
+          pip install playwright google-auth google-auth-httplib2 google-api-python-client
           playwright install chromium
 
-      - name: Run Playwright script (download Excel)
-        run: python main.py
-
-      - name: Upload to Google Drive
+      - name: Run combined automation script
         env:
           GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
-        run: python upload_to_drive.py
+        run: python main.py
