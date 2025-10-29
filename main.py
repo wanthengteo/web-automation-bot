@@ -75,7 +75,7 @@ def overwrite_google_sheet(excel_path):
     sheets_service = build("sheets", "v4", credentials=creds)
 
     # Read Excel data
-    df = pd.read_excel(excel_path)
+    df = pd.read_excel(EXCEL_FILE, engine="xlrd")
     # Columns C,F,G,H,I -> indexes 2,5,6,7,8
     data_to_write = df.iloc[:, [2,5,6,7,8]].values.tolist()
 
