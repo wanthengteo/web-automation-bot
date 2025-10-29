@@ -1,0 +1,35 @@
+name: Auto Download Leave Data and Upload to Google Drive
+
+on:
+  schedule:
+    # Run every day at 23:00 UTC = 7:00 AM Malaysia (UTC+8)
+    - cron: "0 23 * * *"
+  workflow_dispatch:  # allows manual run
+    
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install playwright pydrive2
+          playwright install chromium
+
+      - name: Run main.py (download Excel)
+        run: python main.py
+
+      - name: Run upload_to_drive.py (upload to Google Drive)
+        env:
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+          GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+        run: python upload_to_drive.py
