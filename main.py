@@ -1,55 +1,106 @@
 from playwright.sync_api import sync_playwright
-import time
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 import os
+import json
+import time
+from datetime import datetime
 
+# === 1. Login configuration ===
 LOGIN_URL = "http://103.230.126.114/eportal/public/signin.aspx"
 USERNAME = "HR008"
 PASSWORD = "12345678"
+DOWNLOAD_DIR = "."  # Save Excel file in repo root
+EXCEL_FILE = f"leave_history_{datetime.now().strftime('%Y-%m-%d')}.xls"
 
-DOWNLOAD_DIR = "."  # ✅ add this line
+# === 2. Automate login & download using Playwright ===
+def download_excel():
+    print("🚀 Starting browser automation...")
 
-with sync_playwright() as p:
-    browser = p.chromium.launch(
-        headless=True,
-        args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"]
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-setuid-sandbox"])
+        page = browser.new_page()
+
+        # Login
+        page.goto(LOGIN_URL)
+        page.fill('input[name="ctl00$MainContent$txtEmpID"]', USERNAME)
+        page.fill('input[name="ctl00$MainContent$txtPassword"]', PASSWORD)
+        page.click('input[name="ctl00$MainContent$btnSignIn"]')
+        page.wait_for_load_state("networkidle")
+
+        # Navigate to Leave History page
+        page.goto("http://103.230.126.114/eportal/admin/processor/lvhistoryepe.aspx")
+        page.wait_for_load_state("networkidle")
+
+        # Fill date range
+        page.fill('input[name="ctl00$MainContent$txtFromDate"]', "01/01/2025")
+        page.fill('input[name="ctl00$MainContent$txtToDate"]', "31/12/2026")
+        page.click('input[name="ctl00$MainContent$btnSearch"]')
+
+        print("⏳ Waiting for results to load...")
+        page.wait_for_timeout(7000)
+        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+
+        # Wait for Save to Excel
+        page.wait_for_selector("input[value='Save to Excel']", timeout=60000)
+
+        # Download file
+        print("💾 Clicking Save to Excel...")
+        with page.expect_download() as download_info:
+            page.click("input[value='Save to Excel']")
+        download = download_info.value
+
+        output_path = os.path.join(DOWNLOAD_DIR, EXCEL_FILE)
+        download.save_as(output_path)
+        browser.close()
+
+        print(f"✅ Download completed: {output_path}")
+        return output_path
+
+
+# === 3. Upload file to Google Drive (to specific folder) ===
+def upload_to_drive(file_path):
+    print("📤 Uploading to Google Drive...")
+
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"❌ File not found: {file_path}")
+
+    # Load credentials
+    service_account_info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT"])
+    creds = service_account.Credentials.from_service_account_info(
+        service_account_info,
+        scopes=["https://www.googleapis.com/auth/drive.file"]
     )
-    page = browser.new_page()
 
-    # === LOGIN ===
-    page.goto(LOGIN_URL)
-    page.fill('input[name="ctl00$MainContent$txtEmpID"]', USERNAME)
-    page.fill('input[name="ctl00$MainContent$txtPassword"]', PASSWORD)
-    page.click('input[name="ctl00$MainContent$btnSignIn"]')
-    page.wait_for_load_state("networkidle")
+    drive_service = build("drive", "v3", credentials=creds)
 
-    # === NAVIGATE TO LEAVE HISTORY PAGE ===
-    page.goto("http://103.230.126.114/eportal/admin/processor/lvhistoryepe.aspx")
-    page.wait_for_load_state("networkidle")
+    # Get folder ID from GitHub Secret
+    folder_id = os.environ.get("GOOGLE_DRIVE_FOLDER_ID")
+    if not folder_id:
+        raise ValueError("❌ Missing GOOGLE_DRIVE_FOLDER_ID environment variable in GitHub Secrets")
 
-    # === ENTER DATE RANGE ===
-    page.fill('input[name="ctl00$MainContent$txtFromDate"]', "01/01/2025")
-    page.fill('input[name="ctl00$MainContent$txtToDate"]', "31/12/2026")
-    page.click('input[name="ctl00$MainContent$btnSearch"]')
+    # Upload file into specific folder
+    file_name = os.path.basename(file_path)
+    file_metadata = {
+        "name": file_name,
+        "parents": [folder_id]  # upload into target folder
+    }
 
-    print("⏳ Waiting for results to load and scrolling...")
-    page.wait_for_timeout(7000)  # allow time for backend processing
-    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")  # scroll to bottom
+    media = MediaFileUpload(file_path, mimetype="application/vnd.ms-excel")
+    uploaded_file = drive_service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields="id, webViewLink"
+    ).execute()
 
-    # === ENSURE SAVE TO EXCEL IS VISIBLE ===
-    page.wait_for_selector("input[value='Save to Excel']", timeout=30000)
-    page.evaluate("document.querySelector('input[value=\"Save to Excel\"]').scrollIntoView()")
-    page.wait_for_timeout(1000)
+    print(f"✅ File uploaded to folder: {uploaded_file.get('webViewLink')}")
 
-    # === DOWNLOAD FILE ===
-    print("💾 Clicking Save to Excel...")
-    with page.expect_download() as download_info:
-        page.click("input[value='Save to Excel']")
-    download = download_info.value
-    
-    # Save into local Downloads folder
-    output_path = os.path.join(DOWNLOAD_DIR, "leave_history.xls")
-    download.save_as(output_path)
 
-    print(f"✅ Download completed: {output_path}")
-
-    browser.close()
+# === 4. Main execution ===
+if __name__ == "__main__":
+    try:
+        excel_path = download_excel()
+        upload_to_drive(excel_path)
+    except Exception as e:
+        print(f"❌ Workflow failed: {e}")
