@@ -33,7 +33,7 @@ def download_excel():
         page.wait_for_load_state("networkidle")
 
         # Fill date range
-        page.fill('input[name="ctl00$MainContent$txtFromDate"]', "01/01/2025")
+        page.fill('input[name="ctl00$MainContent$txtFromDate"]', "01/01/2026")
         page.fill('input[name="ctl00$MainContent$txtToDate"]', "31/12/2026")
         page.click('input[name="ctl00$MainContent$btnSearch"]')
 
